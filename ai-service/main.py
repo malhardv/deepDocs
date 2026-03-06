@@ -51,8 +51,10 @@ async def upload_files(
         return {"message": "Files processed successfully", "chunks": result}
         
     except Exception as e:
-        print(f"Error processing files: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        import traceback
+        full_trace = traceback.format_exc()
+        print(f"Error processing files:\n{full_trace}")
+        raise HTTPException(status_code=500, detail=str(e) + " | Trace: " + full_trace)
     finally:
         # ALWAYS clean up the temporary directory
         shutil.rmtree(temp_dir, ignore_errors=True)

@@ -1,19 +1,20 @@
 # vector_store.py
 from langchain_community.vectorstores import FAISS
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_community.embeddings import FastEmbedEmbeddings
 
 # In-memory session store. Maps session_id -> FAISS index
 vector_stores = {}
 
 # Lazy-loaded embeddings model — loaded only on first use so the server
 # can start up and pass health checks before the model finishes downloading.
+# Uses fastembed (ONNX-based) — no PyTorch required, much faster to install.
 _embeddings = None
 
 def get_embeddings():
     global _embeddings
     if _embeddings is None:
         print("Loading embedding model (first-time setup)...")
-        _embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+        _embeddings = FastEmbedEmbeddings(model_name="BAAI/bge-small-en-v1.5")
         print("Embedding model loaded.")
     return _embeddings
 

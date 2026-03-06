@@ -29,6 +29,24 @@ const upload = multer({
     }
 }).array('files', 10); // Accept up to 10 files
 
+// Wakes up the AI service if it's sleeping (Render free tier spins down after inactivity).
+// Tries for up to 45 seconds before giving up.
+async function warmUpAIService() {
+    const maxAttempts = 9;
+    for (let i = 0; i < maxAttempts; i++) {
+        try {
+            const res = await fetch(`${AI_SERVICE_URL}/`, { signal: AbortSignal.timeout(5000) });
+            if (res.ok) {
+                console.log('AI service is awake.');
+                return;
+            }
+        } catch (_) { /* still waking up */ }
+        console.log(`AI service not ready yet, retrying... (${i + 1}/${maxAttempts})`);
+        await new Promise(r => setTimeout(r, 5000));
+    }
+    throw new Error('AI service did not wake up in time. Please try again in a moment.');
+}
+
 // Routes
 app.post('/api/upload', (req, res) => {
     upload(req, res, async (err) => {
@@ -49,6 +67,9 @@ app.post('/api/upload', (req, res) => {
         }
 
         try {
+            // Wake up the AI service first (handles Render free-tier cold starts)
+            await warmUpAIService();
+
             // Forward files to Python Service
             const formData = new FormData();
             formData.append('session_id', sessionId);
@@ -65,7 +86,8 @@ app.post('/api/upload', (req, res) => {
             const response = await fetch(`${AI_SERVICE_URL}/api/upload`, {
                 method: 'POST',
                 body: formData,
-                headers: formData.getHeaders()
+                headers: formData.getHeaders(),
+                signal: AbortSignal.timeout(120000) // 2-minute timeout for processing
             });
 
             if (!response.ok) {
@@ -81,6 +103,7 @@ app.post('/api/upload', (req, res) => {
         }
     });
 });
+
 
 app.post('/api/ask', async (req, res) => {
     const { session_id, question } = req.body;

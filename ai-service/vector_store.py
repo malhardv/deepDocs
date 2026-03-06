@@ -5,8 +5,17 @@ from langchain_huggingface import HuggingFaceEmbeddings
 # In-memory session store. Maps session_id -> FAISS index
 vector_stores = {}
 
-# Initialize global embeddings model
-embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+# Lazy-loaded embeddings model — loaded only on first use so the server
+# can start up and pass health checks before the model finishes downloading.
+_embeddings = None
+
+def get_embeddings():
+    global _embeddings
+    if _embeddings is None:
+        print("Loading embedding model (first-time setup)...")
+        _embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+        print("Embedding model loaded.")
+    return _embeddings
 
 def store_embeddings(session_id: str, chunks: list):
     """
@@ -14,7 +23,7 @@ def store_embeddings(session_id: str, chunks: list):
     the document chunks. Overwrites any existing store for the session.
     """
     # Create the FAISS store from the current chunks
-    vector_store = FAISS.from_documents(chunks, embeddings)
+    vector_store = FAISS.from_documents(chunks, get_embeddings())
     
     # Save the store in memory
     vector_stores[session_id] = vector_store

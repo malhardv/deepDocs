@@ -11,4 +11,4 @@ pypdf
 python-multipart
 python-dotenv
 unstructured
-"unstructured[xlsx]"
+unstructured[xlsx]

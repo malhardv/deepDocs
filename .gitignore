@@ -1,0 +1,37 @@
+# ── Python ──────────────────────────────
+ai-service/venv/
+ai-service/__pycache__/
+ai-service/*.pyc
+ai-service/*.pyo
+*.pyc
+__pycache__/
+
+# ── Environment / Secrets ────────────────
+.env
+.env.local
+.env.*.local
+ai-service/.env
+server/.env
+
+# ── Node / npm ───────────────────────────
+node_modules/
+client/node_modules/
+server/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+
+# ── Vite build output ────────────────────
+client/dist/
+client/.vite/
+
+# ── OS ───────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── IDE ──────────────────────────────────
+.vscode/
+.idea/
+*.suo
+*.user

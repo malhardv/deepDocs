@@ -7,6 +7,7 @@ langchain-groq
 langchain-huggingface
 langchain-text-splitters
 faiss-cpu
+fastembed
 pypdf
 python-multipart
 python-dotenv

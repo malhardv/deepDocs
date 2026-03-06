@@ -30,7 +30,7 @@ const upload = multer({
 }).array('files', 10); // Accept up to 10 files
 
 async function warmUpAIService() {
-    const maxAttempts = 9;
+    const maxAttempts = 36; // 36 * 5s = 180s (3 solid minutes)
     for (let i = 0; i < maxAttempts; i++) {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 10000);
@@ -48,7 +48,7 @@ async function warmUpAIService() {
         }
         await new Promise(r => setTimeout(r, 5000));
     }
-    throw new Error('AI service did not wake up in time. Please try again in a moment.');
+    throw new Error('AI service did not wake up in time. Please try again in 1-2 minutes while the cloud server boots.');
 }
 // Routes
 app.post('/api/upload', (req, res) => {

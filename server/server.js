@@ -29,24 +29,27 @@ const upload = multer({
     }
 }).array('files', 10); // Accept up to 10 files
 
-// Wakes up the AI service if it's sleeping (Render free tier spins down after inactivity).
-// Tries for up to 45 seconds before giving up.
 async function warmUpAIService() {
     const maxAttempts = 9;
     for (let i = 0; i < maxAttempts; i++) {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10000);
         try {
-            const res = await fetch(`${AI_SERVICE_URL}/`, { signal: AbortSignal.timeout(5000) });
+            const res = await fetch(`${AI_SERVICE_URL}/`, { signal: controller.signal });
             if (res.ok) {
                 console.log('AI service is awake.');
+                clearTimeout(timeout);
                 return;
             }
-        } catch (_) { /* still waking up */ }
-        console.log(`AI service not ready yet, retrying... (${i + 1}/${maxAttempts})`);
+        } catch (e) {
+            console.log(`AI service not ready yet, retrying... (${i + 1}/${maxAttempts}) Error: ${e.message}`);
+        } finally {
+            clearTimeout(timeout);
+        }
         await new Promise(r => setTimeout(r, 5000));
     }
     throw new Error('AI service did not wake up in time. Please try again in a moment.');
 }
-
 // Routes
 app.post('/api/upload', (req, res) => {
     upload(req, res, async (err) => {
@@ -83,20 +86,27 @@ app.post('/api/upload', (req, res) => {
 
             console.log(`Forwarding ${files.length} files to AI service for session: ${sessionId}`);
 
-            const response = await fetch(`${AI_SERVICE_URL}/api/upload`, {
-                method: 'POST',
-                body: formData,
-                headers: formData.getHeaders(),
-                signal: AbortSignal.timeout(120000) // 2-minute timeout for processing
-            });
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 120000);
 
-            if (!response.ok) {
-                const errorData = await response.text();
-                throw new Error(errorData || 'AI service error');
+            try {
+                const response = await fetch(`${AI_SERVICE_URL}/api/upload`, {
+                    method: 'POST',
+                    body: formData,
+                    headers: formData.getHeaders(),
+                    signal: controller.signal // 2-minute timeout
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.text();
+                    throw new Error(errorData || 'AI service error');
+                }
+
+                const data = await response.json();
+                return res.json({ message: 'Documents uploaded and processed successfully', details: data });
+            } finally {
+                clearTimeout(timeout);
             }
-
-            const data = await response.json();
-            return res.json({ message: 'Documents uploaded and processed successfully', details: data });
         } catch (error) {
             console.error('Error forwarding files to AI service:', error);
             return res.status(500).json({ error: error.message || 'Failed to process documents on AI service.' });

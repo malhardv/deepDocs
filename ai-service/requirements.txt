@@ -1,0 +1,15 @@
+fastapi
+uvicorn[standard]
+langchain
+langchain-core
+langchain-community
+langchain-groq
+langchain-huggingface
+langchain-text-splitters
+faiss-cpu
+sentence-transformers
+pypdf
+python-multipart
+python-dotenv
+unstructured
+unstructured[xlsx]

@@ -1,23 +1,20 @@
 # vector_store.py
-import os
 from langchain_community.vectorstores import FAISS
-from langchain_community.embeddings import HuggingFaceInferenceAPIEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 
 # In-memory session store. Maps session_id -> FAISS index
 vector_stores = {}
 
-# Lazy-loaded embeddings — uses the HuggingFace Inference API (remote).
-# No PyTorch or local model download required. Needs HF_TOKEN env variable.
+# Lazy-loaded local embeddings model — loaded only on first use.
+# Since we explicitly build PyTorch for CPU, it's fast and avoids network rate limits.
 _embeddings = None
 
 def get_embeddings():
     global _embeddings
     if _embeddings is None:
-        api_key = os.environ.get("HF_TOKEN", "")
-        _embeddings = HuggingFaceInferenceAPIEmbeddings(
-            api_key=api_key,
-            model_name="sentence-transformers/all-MiniLM-L6-v2"
-        )
+        print("Loading local embedding model (first-time setup)...")
+        _embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+        print("Local embedding model loaded.")
     return _embeddings
 
 def store_embeddings(session_id: str, chunks: list):
